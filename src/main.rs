@@ -4,7 +4,9 @@ use bevy::{
         ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionQualityLevel,
         ScreenSpaceAmbientOcclusionSettings,
     },
-    prelude::*, window::WindowMode,
+    prelude::*,
+    render::camera::Exposure,
+    window::WindowMode,
 };
 use bevy_rapier3d::prelude::*;
 
@@ -27,6 +29,7 @@ fn setup(
     commands
         .spawn(Camera3dBundle {
             transform: Transform::from_xyz(16.0, 12.0, 24.0).looking_at(Vec3::ZERO, Vec3::Y),
+            exposure: Exposure::INDOOR,
             ..Default::default()
         })
         .insert(ScreenSpaceAmbientOcclusionBundle {
@@ -39,7 +42,6 @@ fn setup(
 
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 1500.0,
             shadows_enabled: true,
             ..default()
         },
@@ -54,9 +56,13 @@ fn setup(
             PLANE_SIDE_LENGTH / 2.,
         ))
         .insert(PbrBundle {
-            mesh: meshes.add(shape::Plane::from_size(PLANE_SIDE_LENGTH).into()),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-            transform: Transform::from(Transform::from_xyz(0.0, -2.0, 0.0)),
+            mesh: meshes.add(
+                Plane3d::default()
+                    .mesh()
+                    .size(PLANE_SIDE_LENGTH, PLANE_SIDE_LENGTH),
+            ),
+            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
+            transform: Transform::from_xyz(0.0, -2.0, 0.0),
             ..default()
         });
 
@@ -72,7 +78,7 @@ fn setup(
                 color: Color::WHITE,
             },
         ) // Set the alignment of the Text
-        .with_text_alignment(TextAlignment::Center)
+        .with_text_justify(JustifyText::Center)
         // Set the style of the TextBundle itself.
         .with_style(Style {
             position_type: PositionType::Absolute,
@@ -95,8 +101,8 @@ fn spawn_cube(
         .insert(Collider::cuboid(0.5, 0.5, 0.5))
         .insert(Restitution::coefficient(0.7))
         .insert(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            mesh: meshes.add(Cuboid::default()),
+            material: materials.add(StandardMaterial::from(Color::rgb(0.8, 0.7, 0.6))),
             transform: Transform::from_xyz(random(4), 20.0, random(4)),
             ..default()
         });
@@ -122,9 +128,6 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, spawn_cube)
         .insert_resource(Time::<Fixed>::from_seconds(0.1))
-        .insert_resource(AmbientLight {
-            brightness: 1.0,
-            ..default()
-        })
+        .insert_resource(AmbientLight::default())
         .run();
 }
