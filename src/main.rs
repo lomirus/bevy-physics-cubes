@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_rapier3d::prelude::*;
 
-const PLANE_SIDE_LENGTH: f32 = 200.0;
+const PLANE_SIDE_LENGTH: f32 = 400.0;
 
 #[derive(Component)]
 struct CubeCounter(u32);
@@ -121,7 +121,7 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, spawn_cube)
-        .insert_resource(FixedTime::new_from_secs(0.1))
+        .insert_resource(Time::<Fixed>::from_seconds(0.1))
         .insert_resource(AmbientLight {
             brightness: 1.0,
             ..default()
