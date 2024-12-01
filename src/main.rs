@@ -15,6 +15,12 @@ const PLANE_SIDE_LENGTH: f32 = 400.0;
 #[derive(Component)]
 struct CubeCounter(u32);
 
+#[derive(Resource)]
+struct InstancingAssetHandle {
+    mesh: Handle<Mesh>,
+    material: Handle<StandardMaterial>,
+}
+
 /// Return f32 between [-n, n)
 fn random(n: u32) -> f32 {
     (rand::random::<f32>() - 0.5) * n as f32
@@ -61,10 +67,15 @@ fn setup(
                     .mesh()
                     .size(PLANE_SIDE_LENGTH, PLANE_SIDE_LENGTH),
             ),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
+            material: materials.add(Color::srgb(0.3, 0.5, 0.3)),
             transform: Transform::from_xyz(0.0, -2.0, 0.0),
             ..default()
         });
+
+    commands.insert_resource(InstancingAssetHandle {
+        mesh: meshes.add(Cuboid::default()),
+        material: materials.add(StandardMaterial::from(Color::srgb(0.8, 0.7, 0.6))),
+    });
 
     commands.spawn((
         // Create a TextBundle that has a Text with a single section.
@@ -92,17 +103,16 @@ fn setup(
 
 fn spawn_cube(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut cube_counter: Query<(&mut Text, &mut CubeCounter)>,
+    instantcing_asset_handle: Res<InstancingAssetHandle>,
 ) {
     commands
         .spawn(RigidBody::Dynamic)
         .insert(Collider::cuboid(0.5, 0.5, 0.5))
         .insert(Restitution::coefficient(0.7))
         .insert(PbrBundle {
-            mesh: meshes.add(Cuboid::default()),
-            material: materials.add(StandardMaterial::from(Color::rgb(0.8, 0.7, 0.6))),
+            mesh: instantcing_asset_handle.mesh.clone(),
+            material: instantcing_asset_handle.material.clone(),
             transform: Transform::from_xyz(random(4), 20.0, random(4)),
             ..default()
         });
