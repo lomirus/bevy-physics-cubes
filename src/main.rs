@@ -1,19 +1,20 @@
+use avian3d::prelude::*;
 use bevy::{
-    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
-    pbr::{
-        ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionQualityLevel,
-        ScreenSpaceAmbientOcclusionSettings,
-    },
+    core_pipeline::experimental::taa::{TemporalAntiAliasPlugin, TemporalAntiAliasing},
+    pbr::{ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel},
     prelude::*,
     render::camera::Exposure,
     window::WindowMode,
 };
-use bevy_rapier3d::prelude::*;
 
 const PLANE_SIDE_LENGTH: f32 = 400.0;
 
 #[derive(Component)]
 struct CubeCounter(u32);
+
+
+#[derive(Resource)]
+struct ElaspedTime(u128);
 
 #[derive(Resource)]
 struct InstancingAssetHandle {
@@ -32,45 +33,39 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    commands
-        .spawn(Camera3dBundle {
-            transform: Transform::from_xyz(16.0, 12.0, 24.0).looking_at(Vec3::ZERO, Vec3::Y),
-            exposure: Exposure::INDOOR,
-            ..Default::default()
-        })
-        .insert(ScreenSpaceAmbientOcclusionBundle {
-            settings: ScreenSpaceAmbientOcclusionSettings {
-                quality_level: ScreenSpaceAmbientOcclusionQualityLevel::Ultra,
-            },
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(16.0, 12.0, 24.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Exposure::INDOOR,
+        ScreenSpaceAmbientOcclusion {
+            quality_level: ScreenSpaceAmbientOcclusionQualityLevel::Ultra,
             ..default()
-        })
-        .insert(TemporalAntiAliasBundle::default());
+        },
+        Msaa::Off,
+        TemporalAntiAliasing::default(),
+    ));
 
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
+    commands.spawn((
+        PointLight {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 16.0, 4.0),
-        ..default()
-    });
+        Transform::from_xyz(4.0, 16.0, 4.0),
+    ));
 
-    commands
-        .spawn(Collider::cuboid(
-            PLANE_SIDE_LENGTH / 2.,
-            0.0,
-            PLANE_SIDE_LENGTH / 2.,
-        ))
-        .insert(PbrBundle {
-            mesh: meshes.add(
+    commands.spawn((
+        RigidBody::Static,
+        Collider::cuboid(PLANE_SIDE_LENGTH / 2., 0.1, PLANE_SIDE_LENGTH / 2.),
+        Mesh3d(
+            meshes.add(
                 Plane3d::default()
                     .mesh()
                     .size(PLANE_SIDE_LENGTH, PLANE_SIDE_LENGTH),
             ),
-            material: materials.add(Color::srgb(0.3, 0.5, 0.3)),
-            transform: Transform::from_xyz(0.0, -2.0, 0.0),
-            ..default()
-        });
+        ),
+        MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
+        Transform::from_xyz(0.0, -2.0, 0.0),
+    ));
 
     commands.insert_resource(InstancingAssetHandle {
         mesh: meshes.add(Cuboid::default()),
@@ -78,25 +73,23 @@ fn setup(
     });
 
     commands.spawn((
-        // Create a TextBundle that has a Text with a single section.
-        TextBundle::from_section(
-            // Accepts a `String` or any type that converts into a `String`, such as `&str`
-            "Cubes: 0",
-            TextStyle {
-                // This font is loaded and will be used instead of the default font.
-                font: asset_server.load("fonts/FiraMono-Medium.ttf"),
-                font_size: 36.0,
-                color: Color::WHITE,
-            },
-        ) // Set the alignment of the Text
-        .with_text_justify(JustifyText::Center)
-        // Set the style of the TextBundle itself.
-        .with_style(Style {
+        Text::new("Cubes: 0"),
+        TextFont {
+            font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+            font_size: 36.0,
+            ..default()
+        },
+        TextColor::from(Color::WHITE),
+        TextLayout {
+            justify: JustifyText::Center,
+            ..default()
+        },
+        Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(15.0),
             left: Val::Px(15.0),
             ..default()
-        }),
+        },
         CubeCounter(0),
     ));
 }
@@ -104,22 +97,27 @@ fn setup(
 fn spawn_cube(
     mut commands: Commands,
     mut cube_counter: Query<(&mut Text, &mut CubeCounter)>,
+    mut elasped_time: ResMut<ElaspedTime>,
+    time: Res<Time>,
     instantcing_asset_handle: Res<InstancingAssetHandle>,
 ) {
-    commands
-        .spawn(RigidBody::Dynamic)
-        .insert(Collider::cuboid(0.5, 0.5, 0.5))
-        .insert(Restitution::coefficient(0.7))
-        .insert(PbrBundle {
-            mesh: instantcing_asset_handle.mesh.clone(),
-            material: instantcing_asset_handle.material.clone(),
-            transform: Transform::from_xyz(random(4), 20.0, random(4)),
-            ..default()
-        });
+    elasped_time.0 += time.delta().as_micros();
+    if elasped_time.0 < 100000 {
+        return;
+    } else {
+        elasped_time.0 -= 100000;
+    }
+    commands.spawn((
+        RigidBody::Dynamic,
+        Collider::cuboid(1.0, 1.0, 1.0),
+        Mesh3d(instantcing_asset_handle.mesh.clone_weak()),
+        MeshMaterial3d(instantcing_asset_handle.material.clone_weak()),
+        Transform::from_xyz(random(4), 20.0, random(4)),
+    ));
 
     let mut counter = cube_counter.get_single_mut().unwrap();
     counter.1 .0 += 1;
-    counter.0.sections[0].value = format!("Cubes: {}", counter.1 .0);
+    counter.0 .0 = format!("Cubes: {}", counter.1 .0);
 }
 
 fn main() {
@@ -127,17 +125,17 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    mode: WindowMode::BorderlessFullscreen,
+                    mode: WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
                     ..Default::default()
                 }),
                 ..Default::default()
             }),
             TemporalAntiAliasPlugin,
+            PhysicsPlugins::default(),
         ))
-        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, spawn_cube)
-        .insert_resource(Time::<Fixed>::from_seconds(0.1))
+        .insert_resource(ElaspedTime(0))
         .insert_resource(AmbientLight::default())
         .run();
 }
