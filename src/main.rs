@@ -4,14 +4,12 @@ use bevy::{
     pbr::{ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel},
     prelude::*,
     render::camera::Exposure,
-    window::WindowMode,
 };
 
 const PLANE_SIDE_LENGTH: f32 = 400.0;
 
 #[derive(Component)]
 struct CubeCounter(u32);
-
 
 #[derive(Resource)]
 struct ElaspedTime(u128);
@@ -36,21 +34,13 @@ fn setup(
     commands.spawn((
         Camera3d::default(),
         Transform::from_xyz(16.0, 12.0, 24.0).looking_at(Vec3::ZERO, Vec3::Y),
-        Exposure::INDOOR,
         ScreenSpaceAmbientOcclusion {
             quality_level: ScreenSpaceAmbientOcclusionQualityLevel::Ultra,
             ..default()
         },
         Msaa::Off,
+        Exposure::INDOOR,
         TemporalAntiAliasing::default(),
-    ));
-
-    commands.spawn((
-        PointLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_xyz(4.0, 16.0, 4.0),
     ));
 
     commands.spawn((
@@ -110,8 +100,8 @@ fn spawn_cube(
     commands.spawn((
         RigidBody::Dynamic,
         Collider::cuboid(1.0, 1.0, 1.0),
-        Mesh3d(instantcing_asset_handle.mesh.clone_weak()),
-        MeshMaterial3d(instantcing_asset_handle.material.clone_weak()),
+        Mesh3d(instantcing_asset_handle.mesh.clone()),
+        MeshMaterial3d(instantcing_asset_handle.material.clone()),
         Transform::from_xyz(random(4), 20.0, random(4)),
     ));
 
@@ -123,13 +113,7 @@ fn spawn_cube(
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    mode: WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            }),
+            DefaultPlugins,
             TemporalAntiAliasPlugin,
             PhysicsPlugins::default(),
         ))
