@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.15.0", features = ["dynamic_linking"] }
-avian3d = { version = "0.2.0" }
+bevy = { version = "0.16.1", features = ["dynamic_linking"] }
+avian3d = { version = "0.3.1" }
 rand = "0.8.5"
 
 

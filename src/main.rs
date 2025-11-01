@@ -105,7 +105,7 @@ fn spawn_cube(
         Transform::from_xyz(random(4), 20.0, random(4)),
     ));
 
-    let mut counter = cube_counter.get_single_mut().unwrap();
+    let mut counter = cube_counter.single_mut().unwrap();
     counter.1 .0 += 1;
     counter.0 .0 = format!("Cubes: {}", counter.1 .0);
 }
