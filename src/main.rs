@@ -1,9 +1,9 @@
 use avian3d::prelude::*;
 use bevy::{
-    core_pipeline::experimental::taa::{TemporalAntiAliasPlugin, TemporalAntiAliasing},
+    anti_alias::taa::TemporalAntiAliasing,
+    camera::Exposure,
     pbr::{ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel},
     prelude::*,
-    render::camera::Exposure,
 };
 
 const PLANE_SIDE_LENGTH: f32 = 400.0;
@@ -71,7 +71,7 @@ fn setup(
         },
         TextColor::from(Color::WHITE),
         TextLayout {
-            justify: JustifyText::Center,
+            justify: Justify::Center,
             ..default()
         },
         Node {
@@ -112,11 +112,7 @@ fn spawn_cube(
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins,
-            TemporalAntiAliasPlugin,
-            PhysicsPlugins::default(),
-        ))
+        .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_systems(Startup, setup)
         .add_systems(FixedUpdate, spawn_cube)
         .insert_resource(ElaspedTime(0))
